@@ -1,0 +1,231 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgres"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  COMPANY
+}
+
+enum Plan {
+  FREE
+  ENTERPRISE
+  COMMERCIAL
+}
+
+enum SubscriptionPeriod {
+  MONTHLY
+  YEARLY
+}
+
+enum Status {
+  ACTIVE
+  SUSPEND
+}
+enum APPLICANT_STATUS {
+  PENDING
+  SHORTLISTED
+  REJECTED
+}
+
+enum DIS{
+  YES
+  NO
+}
+model User {
+  id               String     @id @default(cuid()) @map("_id")
+  email            String     @unique
+  password         String
+  emailVerified    DateTime?  @map("email_verified")
+  role             UserRole   @default(USER)
+  candidate        Candidate? @relation("UserToCandidate")
+  company          Company?   @relation("UserToCompany")
+  profileCompleted Boolean    @default(false)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  @@map("users")
+}
+
+model Candidate {
+  id                String      @id @default(cuid()) @map("_id")
+  pic               String?
+  linkedIn          String?
+  countryName       String?
+  cityName          String?
+  address           String?
+  phone             String?
+  email             String?
+  gender            String?
+  firstName         String?
+  lastName          String?
+  presentation      String?
+  contractType      String?
+  sectorPref        String?
+  positionName      String?
+  disability        DIS?        @default(NO)
+  age               String?
+  experience        String?
+  salaryExpectation String?
+
+  applicants        Applicant?
+  user              User        @relation(fields: [userId], references: [id], name: "UserToCandidate")
+  userId            String      @unique
+  portfolioLink     String?
+  favorites         Favorite[]
+}
+
+model Applicant {
+  id                     Int                   @id @default(autoincrement()) @map("_id")
+  // firstName              String?
+  // lastName               String?
+  // country                String?
+  // city                   String?
+  // street                 String?
+  // phone                  Int?
+  // email                  String?
+  // age                    Int?
+  // gender                 String?
+  // picture                String?
+  // disable                Boolean?
+  // position               String?
+  // presentation           String?
+  profileType            String?
+  contractType           String?
+  salaryExpectation      String?
+  hardSkills             String[]
+  softSkills             String[]
+  resume                 String?
+  academicBackground     AcademicBackground[]
+  professionalExperience ProfessionalExperience[]
+  hobbies                String[]
+
+  candidate   Candidate @relation(fields: [candidateId], references: [id])
+  candidateId String    @unique
+  job         Job       @relation(fields: [jobId], references: [id])
+  jobId       Int
+  status      APPLICANT_STATUS  @default(PENDING)
+}
+
+model ProfessionalExperience {
+  id           Int    @id @default(autoincrement()) @map("_id")
+  positionName String
+  companyName  String
+  period       DateTime
+  description  String
+  applicantId  Int
+  applicant    Applicant @relation(fields: [applicantId], references: [id])
+}
+
+model AcademicBackground {
+  id            Int    @id @default(autoincrement()) @map("_id")
+  instituteName String
+  speciality    String
+  period        DateTime
+  applicantId   Int
+  applicant     Applicant @relation(fields: [applicantId], references: [id])
+}
+
+model Company {
+  id           String        @id @default(cuid()) @map("_id")
+  logo         String?
+  websiteLink  String?
+  companyName  String?
+  sector       String?
+  countryName  String?
+  cityName     String?
+  address      String?
+  phone        String?
+  email        String?
+  gender       String?
+  firstName    String?
+  lastName     String?
+  presentation String?
+
+  user         User          @relation(fields: [userId], references: [id], name: "UserToCompany")
+  userId       String        @unique
+  jobs         Job[]
+  Subscription Subscription?
+  customerId   String?       @unique
+  plan         Plan          @default(FREE)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Job {
+  id           Int      @id @default(autoincrement()) @map("_id")
+  positionName String
+  jobOffer     String
+  contractType String
+  genderPref   String
+  disable      Boolean
+  ageLimit     String
+  experience          String
+  annualSalary String
+  monthly      String
+  hardSkills   String[]
+  softSkills   String[]
+  status       Status      @default(ACTIVE)
+  company      Company     @relation(fields: [companyId], references: [id])
+  companyId    String
+  applicants   Applicant[]
+  favorites    Favorite[]
+}
+
+model VerificationToken {
+  id      String   @id @default(cuid()) @map("_id")
+  email   String
+  token   String   @unique
+  expires DateTime
+
+  @@unique([email, token])
+}
+
+model PasswordResetToken {
+  id      String   @id @default(cuid()) @map("_id")
+  email   String
+  token   String   @unique
+  expires DateTime
+
+  @@unique([email, token])
+}
+
+model Subscription {
+  id        String             @id @default(cuid()) @map("_id")
+  companyId String             @unique
+  plan      Plan
+  period    SubscriptionPeriod
+  startDate DateTime           @default(now())
+  endDate   DateTime
+  Company   Company            @relation(fields: [companyId], references: [id])
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+}
+
+model Favorite {
+  id          Int    @id @default(autoincrement()) @map("_id")
+  candidate   Candidate @relation(fields: [candidateId], references: [id])
+  candidateId String // Foreign key to the Candidate table
+  job         Job       @relation(fields: [jobId], references: [id])
+  jobId       Int // Foreign key to the Job table
+  createdAt   DateTime  @default(now())
+
+  @@unique([candidateId, jobId]) // Ensure a candidate can only like a specific job once
+}
+
+
+
+
+
+
