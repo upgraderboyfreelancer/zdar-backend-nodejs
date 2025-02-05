@@ -1,12 +1,15 @@
 import express from "express";
-import { authenticate } from "../middlewares/auth";
+import { authenticate, authorize } from "../middlewares/auth";
 import { validateRequest } from "../middlewares/validateRequest";
-import { CandidateProfileSchema, CompanyProfileSchema } from "../schemas/user";
+import { CandidateProfileSchema } from "../schemas/user";
 import { getProfile, getProfileState, isAuthenticated, updateProfile } from "../controllers/userController";
+import { UserRole } from "@prisma/client";
+import { pdfUploadMiddleware } from "../config/universalCloudinaryConfig";
+import { getResume, uploadResume } from "../controllers/candidateController";
 const userRouter = express.Router();
 
-userRouter.put('/profile', authenticate, validateRequest(CandidateProfileSchema, { "COMPANY": CompanyProfileSchema}), updateProfile);
+userRouter.put('/profile', authenticate, validateRequest(CandidateProfileSchema), updateProfile);
 userRouter.get('/profile', authenticate, getProfile);
-userRouter.get('/profileCompleted', authenticate, getProfileState);
-userRouter.get('/isAuthenticated', authenticate, isAuthenticated);
+// userRouter.post("/upload-pdf", authenticate, authorize(UserRole.USER), pdfUploadMiddleware, uploadResume);
 export default userRouter;
+userRouter.get('/get-resume', authenticate, authorize(UserRole.USER), getResume);

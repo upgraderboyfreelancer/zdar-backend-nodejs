@@ -1,102 +1,85 @@
-import { z } from 'zod';
+import { z } from "zod";
 
-
-
-// Define the schema
 export const RegisterSchema = z.object({
   body: z.preprocess(
     (rawData) => {
       if (typeof rawData === "object" && rawData !== null) {
         const data = rawData as {
-          logoUrl?: string;
-          name?: string;
-          firstName?: string;
-          lastName?: string;
-          websiteUrl?: string;
-          email?: string;
-          password?: string;
-          userType?: "USER" | "COMPANY";
-        };
-
-        // Adjust fields based on `userType`
-        if (data.userType === "USER") {
-          delete data.name; // Exclude `name` for USER
-        } else if (data.userType === "COMPANY") {
-          delete data.firstName; // Exclude `firstName` for COMPANY
-          delete data.lastName; // Exclude `lastName` for COMPANY
+          logoUrl?: string
+          name?: string
+          firstName?: string
+          lastName?: string
+          websiteUrl?: string
+          email?: string
+          password?: string
+          userType?: "USER" | "COMPANY"
         }
-        return data; // Return adjusted data
+
+        if (data.userType === "USER") {
+          delete data.name
+          delete data.websiteUrl
+        } else if (data.userType === "COMPANY") {
+          delete data.firstName
+          delete data.lastName
+        }
+        return data
       }
-      return rawData;
+      return rawData
     },
     z
       .object({
         logoUrl: z.string().optional(),
-        name: z
-          .string({ message: "Name is required!" })
-          .min(1, { message: "Name is required!" })
-          .optional(), // Conditionally validated
-        firstName: z
-          .string({ message: "First name is required!" })
-          .min(1, { message: "First name is required!" })
-          .optional(), // Conditionally validated
-        lastName: z
-          .string({ message: "Last name is required!" })
-          .min(1, { message: "Last name is required!" })
-          .optional(), // Conditionally validated
-        websiteUrl: z
-          .string()
-          .url({ message: "Please enter a valid website URL." })
-          .optional(), // Conditionally required
+        name: z.string({ message: "Company name is required!" }).min(1, { message: "Company name is required!" }).optional(),
+        firstName: z.string({ message: "First Name is required!" }).min(1, { message: "First name is required!" }).optional(),
+        lastName: z.string({ message: "Last Name is required!" }).min(1, { message: "Last name is required!" }).optional(),
+        websiteUrl: z.string({ message: "Website URL is required!" }).url({ message: "Please enter a valid website URL." }).optional(),
         email: z
           .string({ message: "Email is required!" })
-          .min(1, { message: "Email is required!" })
+          .min(1, { message: "Enter a valid email!" })
           .email({ message: "Please provide a valid email address." }),
         password: z
           .string({ message: "Password is required!" })
           .min(8, { message: "Password must be at least 8 characters." })
           .max(12, { message: "Password must not exceed 12 characters." }),
         userType: z.enum(["USER", "COMPANY"], {
-          errorMap: () => ({
-            message: "User type must be either 'USER' or 'COMPANY'.",
-          }),
+          errorMap: () => ({ message: "Please select a user type." }),
         }),
       })
       .refine(
         (data) => {
-          if (data.userType === "COMPANY" && data.websiteUrl) {
+          if (data.userType === "COMPANY" && data.websiteUrl && data.email) {
             try {
               const domain = new URL(data.websiteUrl).hostname;
               return data.email.endsWith(`@${domain}`);
             } catch {
-              return false; // Invalid URL
+              return false;
             }
           }
           return true;
         },
         {
-          message: "As a COMPANY, your email must match the domain of the website URL.",
+          message: "Company email must match the domain of the website URL.",
           path: ["email"],
-        }
+        },
       )
       .refine(
         (data) => {
           if (data.userType === "USER") {
-            return !!data.firstName && !!data.lastName; // USER requires firstName and lastName
+            return !!data.firstName && !!data.lastName;
           }
           if (data.userType === "COMPANY") {
-            return !!data.name && !!data.websiteUrl; // COMPANY requires name and website
+            return !!data.name && !!data.websiteUrl;
           }
           return true;
         },
         {
-          message:
-            "Invalid input: For USER, 'firstName' and 'lastName' are required. For COMPANY, 'name' and 'websiteUrl' are required.",
+          message: "Please fill in all required fields.",
           path: ["userType"],
-        }
+        },
       ),
   ),
 });
+
 
 export const LoginSchema = z.object({
   body: z.object({

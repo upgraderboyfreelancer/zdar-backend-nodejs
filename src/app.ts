@@ -5,14 +5,22 @@ import cookieParser from "cookie-parser";
 import router from "./routes";
 import cors from "cors";
 import "express-async-errors";
-import createError from "http-errors"
 import type { CustomError } from "./types/types";
 import envLoad from "./config/envLoader";
-import createHttpError from "http-errors";
+import createHttpError from 'http-errors';
+import { fileURLToPath } from "url";
+import path, { dirname } from "path";
 
+
+// Express Server
 const app = express();
 
+// Load Env
 envLoad();
+
+
+// Server Middlewares
+app.use(cookieParser());
 app.use(cors({
   origin: 'http://localhost:3000',
   credentials: true
@@ -21,43 +29,38 @@ app.use(express.json())
 app.use(express.urlencoded({extended: true}))
 app.use(morgan("dev"));
 app.use(helmet())
-app.use(cookieParser());
 
 
-app.get("/", (req, res)=>{
-    res.send({ message: 'Welcome To Upgrader Boy!' });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-  })
-  app.get("/protected", async (req, res)=>{
-  console.log(req.headers.cookie);
-  console.log(JSON.stringify(req.cookies, null, 2))
-  const isAuthenticated = true;
-  if(!isAuthenticated)
-    throw createError(403, "You are not Authorized!")
-  res.json({message: "You are authorized!"})
-})
-app.get("/error", async (req, res, next)=>{
-  next(createError(400, "Something went wrong!"))
-})
-// app.get("/*", (req, res, next)=>{
-//   next(createError(404, "This page does not exist!"))
-// })
+// Routes
+app.use("/uploads", express.static(path.join(__dirname, '../uploads')))
+app.use("/pdf-uploads", express.static(path.join(__dirname, '../pdf-uploads')))
 app.use("/api", router)
+// Global Error Handler
+app.use((err: CustomError, req: Request, res: Response, next: NextFunction) => {
+  console.log(err)
+  if (createHttpError.isHttpError(err)) {
 
-app.use((err: CustomError, req: Request, res: Response, next: NextFunction)=>{
-  console.log("1234", err.message)
-  if(err instanceof createHttpError){
     res.status(err.status).json({
       success: false,
       message: err.message,
-      data: null
-    })
+      data: null,
+    });
+    return;
   }
+  // console.log("Unhandled error:", err, typeof err, err instanceof createHttpError);
+  // Fallback for unhandled errors
   const status = err.status || 500;
   res.status(status).json({
+    success: false,
     status,
-    message: process.env.NODE_ENV === "production" ? 'Internal Server Error' : err.message
-  })
+    message: process.env.NODE_ENV === "production" ? "Internal Server Error" : err.message,
+  });
+  return;
+});
 
-})
+
+
 export default app;

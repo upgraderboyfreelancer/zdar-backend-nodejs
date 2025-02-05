@@ -3,7 +3,8 @@ import jwt from 'jsonwebtoken';
 
 import { PrismaClient, UserRole } from '@prisma/client';
 import createHttpError from 'http-errors';
-const secret = process.env.JWT_SECRET! || "1234";
+import asyncHandler from '../lib';
+const secret = process.env.JWT_SECRET! || "YOUR_SECRET";
 const prisma = new PrismaClient();
 
 interface JwtPayload {
@@ -21,27 +22,23 @@ declare global {
 }
 
 // Middleware to authenticate using token from cookies
-export const authenticate = async (
+export const authenticate = asyncHandler(async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    // Extract token from cookies
-    const token = req.cookies?.authToken;
+    // Extract token from cookies or headers
+    const token = req.cookies?.authToken || req.headers.authorization?.split(" ")[1];
     console.log(`token => ${token}`)
     if (!token) {
-      throw createHttpError(401, 'Authentication required');
+      throw createHttpError(401, {message: 'Authentication required'});
     }
-
-    // Verify the token
     const decoded = jwt.verify(token, secret) as JwtPayload;
-
-    // Check if the user exists in the database
     const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
 
     if (!user) {
-      throw createHttpError(404, 'User not found');
+      throw createHttpError(404, {message: 'User not found'});
     }
 
     // Attach the decoded user info to the request object
@@ -49,23 +46,20 @@ export const authenticate = async (
 
     next();
   } catch (error) {
-    console.error(error);
-    throw createHttpError(401, 'Invalid token')
+    throw createHttpError(401, {message: 'Invalid token'})
   }
-};
+})
 
 // Middleware to authorize specific roles
 export const authorize = (...roles: UserRole[]) => {
+  console.log(`authorize => ${roles}`)
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
-      throw createHttpError(401, 'Authentication required')
+      throw createHttpError(401, {message: 'Authentication required'})
     }
-
     if (!roles.includes(req.user.role)) {
-      throw createHttpError(403, 'Unauthorized')
+      throw createHttpError(403, {message: 'Unauthorized'})
     }
-
     next();
   };
 };
-

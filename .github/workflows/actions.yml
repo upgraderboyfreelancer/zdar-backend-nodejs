@@ -1,0 +1,13 @@
+name: Deploy To Staging
+on:
+  push:
+    branches:
+      - "main"
+
+jobs:
+  redeploy_everything:
+    name: Deploying To the staging cluster
+
+    steps:
+      - name: SSH Into Server
+      - run: ssh -i .pmk root@1.1.1.1
