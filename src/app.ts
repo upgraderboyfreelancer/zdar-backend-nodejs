@@ -10,6 +10,8 @@ import envLoad from "./config/envLoader";
 import createHttpError from 'http-errors';
 import { fileURLToPath } from "url";
 import path, { dirname } from "path";
+import { webhook } from "./controllers/paymentController";
+import bodyParser from "body-parser";
 
 
 // Express Server
@@ -21,6 +23,8 @@ envLoad();
 
 // Server Middlewares
 app.use(cookieParser());
+// Stripe Webhook Route (Must be Above JSON Middleware)
+app.post("/stripe", bodyParser.raw({ type: 'application/json' }), webhook);
 app.use(cors({
   origin: 'http://localhost:3000',
   credentials: true

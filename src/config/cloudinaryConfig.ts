@@ -45,7 +45,7 @@ const uploadHandler: RequestHandler = async (req, res) => {
   try {
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = dirname(__filename);
-    console.log(req.file, req.files)
+    // console.log(req.file, req.files)
     if (!req.files) {
       res.status(400).json({ error: "No files uploaded" });
       return

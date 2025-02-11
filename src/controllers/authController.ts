@@ -8,6 +8,7 @@ import asyncHandler from '../lib';
 import { sendPasswordResetEmail } from '../lib/email';
 import jwt from "jsonwebtoken";
 import type { CustomJwtPayload } from '../schemas/auth';
+import { UserRole } from '@prisma/client';
 
 export const register = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const { email, password, logoUrl, userType, name, websiteUrl, firstName, lastName } = req.body;
@@ -55,7 +56,7 @@ export const register = asyncHandler(async (req: Request, res: Response, next: N
 
 export const login = asyncHandler(async (req: Request, res: Response, next: NextFunction)=>{
   const { email, password } = req.body;
-    console.log(email, password, req.headers.cookie)
+    // console.log(email, password, req.headers.cookie)
     // console.log(email, password)
     const user = await db.user.findUnique({ where: { email } });
     if (!user) {
@@ -89,7 +90,7 @@ export const login = asyncHandler(async (req: Request, res: Response, next: Next
     }
 
     const token = signJwt(user.id, user.role, user.email);
-    console.log(token)
+    // console.log(token)
     res.cookie("authToken", token, {
       httpOnly: false,
       secure: process.env.NODE_ENV === "production",
@@ -174,28 +175,45 @@ export const validateUser = asyncHandler((req: Request, res: Response) => {
   const token = req.cookies.authToken || req.headers.authorization?.split(' ')[1];
   console.log(token)
   if (!token) {
-    throw createHttpError(400, { message: "Token not provided"})
+    throw createHttpError(200)
   }
   const decoded = jwt.verify(token, process.env.JWT_SECRET! || "YOUR_SECRET");
-  res.status(200).json({ success: true, valid: true, user: decoded });
+  console.log(decoded)
+  res.status(200).json({ success: true, valid: true, data: decoded });
 })
 
-export const onBoarded = asyncHandler(async (req: Request, res: Response, next: NextFunction)=>{
-  const token = req.cookies.authToken || req.headers.authorization?.split(' ')[1];
-  if (!token) {
-    throw createHttpError(400, { message: "Token not provided"})
-  }
-  const decoded = jwt.verify(token, process.env.JWT_SECRET! || "YOUR_SECRET") as CustomJwtPayload;;
-  const user = await db.user.findUnique({
-    where: {
-      id: decoded.userId
-    },
-    select: {
-      profileCompleted: true,
-      role: true
+
+
+export const getUser = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    console.log("5728734")
+    const { userId, role } = req.user!;
+    // console.log(userId)
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: {
+        candidate: role === UserRole.USER ? {
+          include: {
+            appliedJobs: true,
+          }
+        } : false,
+        company: role === UserRole.COMPANY,
+        email: true,
+        role: true
+      },
+    });
+
+    if (!user) {
+      throw createHttpError(404, {message: 'User not found'});
     }
-  })
-  if(!user) return next(createHttpError(404, { message: "User Not Found!"}))
-  res.status(200).json({ success: true, onBoarded: user.profileCompleted, role: user.role });
-})
-
+    const data = role === UserRole.USER ? user.candidate : user.company;
+    console.log(user)
+    res.status(200).json({
+      success: true,
+      data: user
+    });
+  } catch (error) {
+    // console.log(error)
+    next(error);
+  }
+};

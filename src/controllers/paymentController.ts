@@ -5,20 +5,15 @@ import createHttpError from "http-errors";
 import db from "../lib/prisma";
 import { Plan } from "@prisma/client";
 import asyncHandler from "../lib";
+import { getUserAssociation } from "../lib/getUserIdAssociation";
 
 export const webhook = asyncHandler(async (req: Request, res: Response) => {
-  const body = await req.body;
+  const body = req.body as Buffer;
+  console.log(body)
   const sig = req.headers["stripe-signature"];
   let event: Stripe.Event;
-
-  try {
-    event = stripe.webhooks.constructEvent(body, sig!, process.env.SRIPE_WEBHOOK_SECRET!);
-  } catch (error: { message: string}) {
-    console.log(error)
-    throw createHttpError(400, {
-      message: error.message as string
-    })
-  }
+  console.log(`sig => ${sig}, ${JSON.stringify(body)}`)
+  event = stripe.webhooks.constructEvent(body, sig!, "whsec_yFIHINaJJDfAkNVfx6l5uF3IwT9Uz0Aw");
   try {
     switch (event.type) {
       case "checkout.session.completed":
@@ -46,7 +41,7 @@ export const webhook = asyncHandler(async (req: Request, res: Response) => {
           if (!user.customerId) {
             await db.company.update({
               where: {
-                id: company?.id
+                id: user?.id
               },
               data: {
                 customerId

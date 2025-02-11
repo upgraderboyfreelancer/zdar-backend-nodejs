@@ -3,31 +3,75 @@ import createHttpError from "http-errors";
 import { getUserAssociation } from "../lib/getUserIdAssociation";
 import db from "../lib/prisma";
 import { APPLICANT_STATUS } from "@prisma/client";
+import asyncHandler from "../lib";
 
+
+
+// 🎯 Get All Companies
+export const getCompanies = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const companies = await db.company.findMany();
+
+    res.status(200).json({
+      success: true,
+      data: companies
+    });
+});
+// 🎯 Get All Companies
+export const getCompany = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { id } = req.params;
+  if(!id) throw createHttpError(400, {
+    message: "Company doesnt exist!"
+  });
+  const company = await db.company.findUnique({
+    where: {
+      id
+    },
+    include: {
+      jobs: {
+        select: {
+          positionName: true,
+          description: true,
+          status: true,
+          id: true
+        }
+      },
+      user: {
+        select: {
+          id: true
+        }
+      }
+    }
+  });
+  if(!company) throw createHttpError(400, { message: "Company doesnt exist!" })
+  res.status(200).json({
+    success: true,
+    data: company
+  });
+});
 // 🎯 Get Company Profile
-export const getCompanyProfile = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { userId, role } = req.user!; // Get userId from JWT
-
+export const getCompanyProfile = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { userId, role } = req.user!; // Get userId from JWT
+    console.log(`userId => ${userId}`)
     // Get the associated companyId
     const companyId = await getUserAssociation(userId, "company");
-
+    console.log(`companyId => ${companyId}`)
     // Get the Company profile using the companyId
     const company = await db.company.findUnique({
-      where: { id: companyId },
+      where: {
+        id: companyId
+    },
     });
 
     if (!company) throw createHttpError(404, "Company not found");
-    res.json(company);
-  } catch (error) {
-    next(error);
-  }
-};
+    res.json({
+      success: true,
+      data: company
+    });
+});
 
 // 🎯 Update Company Profile
-export const updateCompanyProfile = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { userId, role } = req.user!; // Get userId from JWT
+export const updateCompanyProfile = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { userId, role } = req.user!; // Get userId from JWT
 
     // Get the associated companyId
     const companyId = await getUserAssociation(userId, "company");
@@ -45,15 +89,11 @@ export const updateCompanyProfile = async (req: Request, res: Response, next: Ne
       message: "Profile has been updated!",
       data: updatedCompany
     });
-  } catch (error) {
-    next(error);
-  }
-};
+});
 
 // 🎯 Get All Jobs Posted by the Company
-export const getCompanyJobs = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { userId, role } = req.user!; // Get userId from JWT
+export const getCompanyJobs = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { userId, role } = req.user!; // Get userId from JWT
 
     // Get the associated companyId
     const companyId = await getUserAssociation(userId, "company");
@@ -65,13 +105,14 @@ export const getCompanyJobs = async (req: Request, res: Response, next: NextFunc
     });
 
     if (!company) throw createHttpError(404, "Company not found");
-    console.log(company)
+    // console.log(company)
     res.json({
       success: true,
       message: "List of company jobs",
       data: company.jobs
     });
-  } catch (error) {
-    next(error);
-  }
-};
+});
+
+
+
+

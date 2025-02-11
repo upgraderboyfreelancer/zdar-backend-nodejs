@@ -61,6 +61,7 @@ model Candidate {
   id                     String                   @id @default(cuid()) @map("_id")
   logo                   String?
   linkedIn               String?
+  websiteLink            String?
   countryName            String?
   cityName               String?
   address                String?
@@ -74,7 +75,7 @@ model Candidate {
   sectorPref             String?
   positionName           String?
   disability             DIS?                     @default(NO)
-  age                    String?
+  age                    DateTime?
   experience             String?
   salaryExpectation      String?
   profileType            String?
@@ -84,19 +85,19 @@ model Candidate {
   academicBackground     AcademicBackground[]
   professionalExperience ProfessionalExperience[]
   hobbies                String[]                 @default([])
-  jobs                   AppliedJobs[]
+  appliedJobs                   AppliedJobs[]
   user                   User                     @relation(fields: [userId], references: [id], name: "UserToCandidate")
   userId                 String                   @unique
   portfolioLink          String?
-  favorites              Favorite[]
+  favorites              String[]
 }
 
 model ProfessionalExperience {
   id           Int       @id @default(autoincrement()) @map("_id")
   positionName String
   companyName  String
-  startDate    String
-  endDate      String
+  startDate    DateTime
+  endDate      DateTime
   description  String
   candidateId  String
   candidate    Candidate @relation(fields: [candidateId], references: [id])
@@ -106,8 +107,8 @@ model AcademicBackground {
   id            Int       @id @default(autoincrement()) @map("_id")
   instituteName String
   speciality    String
-  startDate     String
-  endDate       String
+  startDate     DateTime
+  endDate       DateTime
   candidateId   String
   candidate     Candidate @relation(fields: [candidateId], references: [id])
 }
@@ -133,28 +134,29 @@ model Company {
   jobs         Job[]
   subscription Subscription?
   customerId   String?       @unique
+  favorites    String[]
   plan         Plan          @default(FREE)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 }
 
 model Job {
-  id           Int           @id @default(autoincrement()) @map("_id")
+  id           String           @id @default(cuid()) @map("_id")
   positionName String
   description     String
   contractType String
-  genderPref   String
+  genderPref   String[]
   disable      String
   ageLimit     String[]
-  experience   String
-  annualSalary String
+  experience   String[]
+  annualSalary Int[]
   hardSkills   String[]
   softSkills   String[]
   status       Status        @default(ACTIVE)
   company      Company       @relation(fields: [companyId], references: [id])
   companyId    String
   candidates   AppliedJobs[]
-  favorites    Favorite[]
+  // favorites    Favorite[]
 }
 
 model VerificationToken {
@@ -179,6 +181,7 @@ model Subscription {
   id        String             @id @default(cuid()) @map("_id")
   companyId String             @unique
   plan      Plan
+  email     String?
   period    SubscriptionPeriod
   startDate DateTime           @default(now())
   endDate   DateTime
@@ -187,23 +190,23 @@ model Subscription {
   updatedAt DateTime           @updatedAt
 }
 
-model Favorite {
-  id          Int       @id @default(autoincrement()) @map("_id")
-  candidate   Candidate @relation(fields: [candidateId], references: [id])
-  candidateId String // Foreign key to the Candidate table
-  job         Job       @relation(fields: [jobId], references: [id])
-  jobId       Int // Foreign key to the Job table
-  createdAt   DateTime  @default(now())
+// model Favorite {
+//   id          Int       @id @default(autoincrement()) @map("_id")
+//   candidate   Candidate @relation(fields: [candidateId], references: [id])
+//   candidateId String // Foreign key to the Candidate table
+//   job         Job       @relation(fields: [jobId], references: [id])
+//   jobId       Int // Foreign key to the Job table
+//   createdAt   DateTime  @default(now())
 
-  @@unique([candidateId, jobId]) // Ensure a candidate can only like a specific job once
-}
+//   @@unique([candidateId, jobId]) // Ensure a candidate can only like a specific job once
+// }
 
 model AppliedJobs {
   id          Int              @id @default(autoincrement()) @map("_id")
   candidate   Candidate        @relation(fields: [candidateId], references: [id])
   candidateId String
   job         Job              @relation(fields: [jobId], references: [id])
-  jobId       Int
+  jobId       String
   status      APPLICANT_STATUS @default(PENDING)
   createdAt   DateTime         @default(now())
 
