@@ -7,7 +7,6 @@ import { getVerificationTokenByEmail } from '../utils/verificationToken';
 import asyncHandler from '../lib';
 import { sendPasswordResetEmail } from '../lib/email';
 import jwt from "jsonwebtoken";
-import type { CustomJwtPayload } from '../schemas/auth';
 import { UserRole } from '@prisma/client';
 
 export const register = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
@@ -50,7 +49,7 @@ export const register = asyncHandler(async (req: Request, res: Response, next: N
       expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
     },
   });
-  res.status(201).json({ success: true, message: 'Register Successfully!' });
+  res.status(201).json({ success: true, message: 'Register Successfully!', sendToEmail: email });
 })
 
 
@@ -119,9 +118,11 @@ export const verifyEmail = asyncHandler(async (req: Request, res: Response, next
 
     await db.verificationToken.delete({ where: {
       id: verificationToken?.id
-     } });
+     }});
 
-    res.json({ success: true, message: 'Email verified successfully' });
+    res.json({ success: true, message: 'Email verified successfully', data: {
+      success: true
+    } });
 });
 
 
@@ -197,7 +198,11 @@ export const getUser = async (req: Request, res: Response, next: NextFunction) =
             appliedJobs: true,
           }
         } : false,
-        company: role === UserRole.COMPANY,
+        company: role === UserRole.COMPANY ? {
+          include: {
+            subscription: true
+          }
+        } : false,
         email: true,
         role: true
       },

@@ -212,3 +212,9 @@ model AppliedJobs {
 
   @@unique([candidateId, jobId]) // 🔥 Ensures an applicant applies only once per job
 }
+
+model Position{
+  id          Int               @id @default(autoincrement())
+  key         String            @unique
+  value       String[]
+}

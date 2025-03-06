@@ -26,7 +26,7 @@ app.use(cookieParser());
 // Stripe Webhook Route (Must be Above JSON Middleware)
 app.post("/stripe", bodyParser.raw({ type: 'application/json' }), webhook);
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: [process.env.FRONTEND_URL!],
   credentials: true
 }))
 app.use(express.json())

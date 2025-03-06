@@ -439,3 +439,86 @@ export const updateApplicantionStatus = asyncHandler(async (req: Request, res: R
       return;
     }
 })
+export const updateApplicantionStatusByCompany = asyncHandler(async (req: Request, res: Response) => {
+  const { userId } = req.user!; // Get userId from JWT
+  const { jobId } = req.params;
+  const { status } = req.body;
+
+  // Check if status is valid
+  const validStatuses = ["PENDING", "SHORTLISTED", "REJECTED"];
+  if (!validStatuses.includes(status)) {
+    throw createHttpError(400, { message: "Invalid status value!" });
+  }
+
+  // Ensure jobId is provided and is a string
+  if (!jobId || typeof jobId !== "string") {
+    throw createHttpError(400, { message: "Invalid Job ID!" });
+  }
+
+  // Get the associated companyId from user
+  const companyId = await getUserAssociation(userId, "company");
+  if (!companyId) {
+    throw createHttpError(403, { message: "Unauthorized! Only companies can update application statuses." });
+  }
+
+  // Check if the job exists and is owned by the company making the request
+  const job = await db.job.findUnique({
+    where: {
+      id: jobId
+    },
+    select: {
+      id: true,
+      companyId: true
+    }
+  });
+  if (!job) {
+    throw createHttpError(404, { message: "Job not found!" });
+  }
+  if (job.companyId !== companyId) {
+    throw createHttpError(403, { message: "Unauthorized! You do not own this job offer." });
+  }
+
+  // Get the candidateId from request body
+  const { candidateId } = req.body;
+  if (!candidateId || typeof candidateId !== "string") {
+    throw createHttpError(400, { message: "Invalid Candidate ID!" });
+  }
+
+  // Check if the candidate applied for the job
+  const application = await db.appliedJobs.findUnique({
+    where: {
+      candidateId_jobId: {
+        candidateId,
+        jobId
+      }
+    }
+  });
+
+  if (!application) {
+    throw createHttpError(404, { message: "No application found for this candidate for the given job!" });
+  }
+
+  // Check if the application is already rejected
+  // if (application.status === "REJECTED") {
+  //   throw createHttpError(400, { message: "This application is already rejected and cannot be updated!" });
+  // }
+
+  // Update the application status
+  const updatedApplication = await db.appliedJobs.update({
+    where: {
+      candidateId_jobId: {
+        candidateId,
+        jobId
+      }
+    },
+    data: {
+      status
+    }
+  });
+
+  res.status(200).json({
+    success: true,
+    data: updatedApplication
+  });
+
+})

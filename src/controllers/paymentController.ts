@@ -15,8 +15,9 @@ export const webhook = asyncHandler(async (req: Request, res: Response) => {
   console.log(`sig => ${sig}, ${JSON.stringify(body)}`)
   event = stripe.webhooks.constructEvent(body, sig!, "whsec_yFIHINaJJDfAkNVfx6l5uF3IwT9Uz0Aw");
   try {
-    switch (event.type) {
+    switch (event.type as string) {
       case "checkout.session.completed":
+        case "checkout.session.updated":
         const session = await stripe.checkout.sessions.retrieve(
           (event.data.object as Stripe.Checkout.Session).id,
           {
@@ -75,7 +76,7 @@ export const webhook = asyncHandler(async (req: Request, res: Response) => {
                   period: priceId === process.env.STRIPE_YEARLY_PRICE_ID ? "YEARLY" : "MONTHLY"
                 },
                 update: {
-                  plan: Plan.ENTERPRISE,
+                  plan: Plan.COMMERCIAL,
                   startDate: new Date(),
                   endDate: endDate,
                   period: priceId === process.env.STRIPE_YEARLY_PRICE_ID ? "YEARLY" : "MONTHLY"
@@ -97,4 +98,35 @@ export const webhook = asyncHandler(async (req: Request, res: Response) => {
   res.status(200).json({
     message: "Webhook Recevied!"
   })
+})
+
+export const customerPortal = asyncHandler(async (req: Request, res: Response)=>{
+  const { userId } = req.user!; // Get userId from JWT
+
+    // Get the associated companyId
+    const companyId = await getUserAssociation(userId, "company");
+    const data = await db.company.findUnique({
+      where: {
+        id: companyId
+      },
+      select: {
+        customerId: true
+      }
+    })
+    if (data?.customerId) {
+      const stripeSession = await stripe.billingPortal.sessions.create({
+        customer: data?.customerId,
+        return_url: process.env.FRONTEND_URL || "http://localhost:4000/",
+      });
+
+      const redirectUrl = stripeSession.url as string;
+      console.log(stripeSession, redirectUrl)
+      res.json({
+        success: true,
+        data: {
+          redirect_url: redirectUrl
+        }
+      })
+      return;
+    }
 })

@@ -9,7 +9,13 @@ import asyncHandler from "../lib";
 
 // 🎯 Get All Companies
 export const getCompanies = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  const companies = await db.company.findMany();
+  const companies = await db.company.findMany({
+    where: {
+      user: {
+        profileCompleted: true
+      }
+    }
+  });
 
     res.status(200).json({
       success: true,
@@ -71,7 +77,7 @@ export const getCompanyProfile = asyncHandler(async (req: Request, res: Response
 
 // 🎯 Update Company Profile
 export const updateCompanyProfile = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  const { userId, role } = req.user!; // Get userId from JWT
+  const { userId } = req.user!; // Get userId from JWT
 
     // Get the associated companyId
     const companyId = await getUserAssociation(userId, "company");
@@ -79,7 +85,15 @@ export const updateCompanyProfile = asyncHandler(async (req: Request, res: Respo
     // Update the company profile
     const updatedCompany = await db.company.update({
       where: { id: companyId },
-      data: req.body,
+      data: req.body
+    });
+    const user = await db.user.update({
+      where: {
+        id: userId
+      },
+      data: {
+        profileCompleted: true
+      }
     });
     if(!updatedCompany) throw createHttpError(400, {
       message: "Something went wrong!"

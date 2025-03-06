@@ -1,6 +1,6 @@
 import express from "express";
 import { authenticate } from "../middlewares/auth";
-import { createJob, getJobs, getJob, updateJob, deleteJob, setActiveJob, setSuspendJob, updateFavoriteJobs, getJobApplicants, updateApplicantionStatus } from "../controllers/jobController";
+import { createJob, getJobs, getJob, updateJob, deleteJob, setActiveJob, setSuspendJob, updateFavoriteJobs, getJobApplicants, updateApplicantionStatus, updateApplicantionStatusByCompany } from "../controllers/jobController";
 import { validateRequest } from "../middlewares/validateRequest";
 import { jobSchema } from "../schemas/job";
 
@@ -19,6 +19,7 @@ jobRouter.post("/:jobId/suspend", authenticate, setSuspendJob);
 jobRouter.get("/:jobId/applicants", authenticate, getJobApplicants);
 // Candidate can apply or withdraw their applicantion from job offer
 jobRouter.post("/:jobId/apply", authenticate, updateApplicantionStatus)
+jobRouter.post("/:jobId/apply/status", authenticate, updateApplicantionStatusByCompany)
 // Company Remove Applicant from Applicant List
 jobRouter.delete("/:jobId/applicants/:candidateId", authenticate)
 

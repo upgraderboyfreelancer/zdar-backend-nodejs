@@ -11,7 +11,7 @@ const authRouter = express.Router();
 authRouter.post("/register", validateRequest(RegisterSchema), register)
 authRouter.post("/login", validateRequest(LoginSchema), login)
 authRouter.get("/log-out", logOut)
-authRouter.post("/verify-email/:token", verifyEmail)
+authRouter.get("/verify-email/:token", verifyEmail)
 authRouter.post("/forgot-password", validateRequest(ForgotPasswordSchema), forgotPassword)
 authRouter.post("/reset-password/:token", validateRequest(ResetPasswordSchema), resetPassword)
 authRouter.get("/validate", validateUser)

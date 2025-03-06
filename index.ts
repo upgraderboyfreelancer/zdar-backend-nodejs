@@ -1,5 +1,5 @@
 import app from "./src/app";
-
+import "./cron/subscriptionJob";
 
 const PORT = process.env.PORT || 9000;
 
